@@ -33,6 +33,9 @@ Install from PyPI:
 python -m pip install pygcp-rm
 ```
 
+Matplotlib is installed automatically. Plotting support is part of the standard
+package and requires no extra installation.
+
 Verify the import:
 
 ```python
@@ -50,13 +53,6 @@ For an editable installation:
 
 ```bash
 python -m pip install -e .
-```
-
-Plotting support (Matplotlib) is included in the standard installation.
-For optional development tools:
-
-```bash
-python -m pip install -e '.[dev]'
 ```
 
 ## Input format
