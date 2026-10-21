@@ -4180,7 +4180,7 @@ def format_report(result):
         "GCP-RM joint-likelihood report",
         f"scan_mode={result['config']['scan_mode']}",
         f"transfer={p['transfer']}",
-        f"joint fit: lag_centroid={p['lag']:.4f}, tau_drw={p['tau_drw']:.4f}, rho={p['rho']:.4f}",
+        f"joint fit: lag_centroid={p['lag']:.4f}, tau_drw={p['tau_drw']:.4f}, rho={p['rho']:.6f}",
         f"joint log likelihood={result['joint_loglike']:.3f}",
         f"optimizer converged={result['optimizer_diagnostics']['converged']}",
     ]
