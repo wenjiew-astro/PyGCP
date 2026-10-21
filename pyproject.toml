@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygcp-rm"
+version = "0.1.0"
+authors = [{name = "Wenjie Wang", email = "wenjiew001@gmail.com"}]
+description = "PyGCP: Gaussian-copula-process reverberation-mapping lag inference"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.22",
+  "scipy>=1.9",
+  "iminuit>=2.20",
+  "matplotlib>=3.6",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "pytest>=7", "twine>=5"]
+
+[project.urls]
+Homepage = "https://github.com/wenjiew-astro/PyGCP"
+Repository = "https://github.com/wenjiew-astro/PyGCP"
+Documentation = "https://github.com/wenjiew-astro/PyGCP#readme"
+Issues = "https://github.com/wenjiew-astro/PyGCP/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pygcp = ["py.typed"]
+

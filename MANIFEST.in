@@ -1,0 +1,9 @@
+include .gitignore
+include LICENSE.txt
+include tests/README.md
+include tests/example.py
+include tests/test_flexible_numerics.py
+include tests/test_package.py
+include tests/continuum
+include tests/line
+global-exclude *.py[cod]

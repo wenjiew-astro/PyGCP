@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+.venv/
+.venv-*/
+build/
+dist/
+
+# Local credentials and environment-specific tool settings.
+.env
+.env.*
+.pypirc
+.netrc
+.aws/
+.codex/
+.agents/
