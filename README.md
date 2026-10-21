@@ -49,12 +49,6 @@ From the project directory, install the local source instead:
 python -m pip install .
 ```
 
-For an editable installation:
-
-```bash
-python -m pip install -e .
-```
-
 ## Input format
 
 `continuum` and `line` may be paths or NumPy arrays. Each table must contain
@@ -122,7 +116,7 @@ python tests/example.py
 ```
 
 See [tests/README.md](https://github.com/wenjiew-astro/PyGCP/blob/main/tests/README.md)
-for optional plotting and scanning.
+for plotting and lag-scan examples.
 
 When `fit_transfer_width=True` (the default), no width needs to be supplied.
 The optimizer uses the logarithmic midpoint of `transfer_width_bounds` only as
@@ -336,7 +330,7 @@ are included in the source distribution, but not the wheel. Download a source
 checkout or unpack the source distribution, then run from its project root:
 
 ```bash
-python -m pip install -e .
+python -m pip install .
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
@@ -344,7 +338,8 @@ These tests use bundled code and small in-memory arrays; no external simulation
 archive or historical distribution is required. See
 [tests/README.md](https://github.com/wenjiew-astro/PyGCP/blob/main/tests/README.md)
 for the example and test instructions. Optional development tools can
-be installed with `python -m pip install -e '.[dev]'`.
+be installed with `python -m pip install '.[dev]'`. These are build, test, and
+upload tools; they are not required for fitting or plotting.
 
 Author: Wenjie Wang (<wenjiew001@gmail.com>).
 
