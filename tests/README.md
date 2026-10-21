@@ -19,7 +19,7 @@ Unpack the source distribution or download the source repository, then enter the
 project root containing `pyproject.toml` and run:
 
 ```bash
-python -m pip install -e .
+python -m pip install .
 python tests/example.py
 ```
 
@@ -35,7 +35,7 @@ Input data paths are resolved relative to the script itself, so you can also run
 the script by its absolute path from another directory. Relative paths supplied
 to `--output-prefix` are resolved from the current working directory.
 
-## Optional Plotting and Lag Scans
+## Plotting and Lag Scans
 
 To save light-curve and Gaussian-score plots without running an additional lag
 scan:
