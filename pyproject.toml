@@ -41,5 +41,5 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-pygcp = ["py.typed"]
+pygcp = ["py.typed", "data/*.txt"]
 

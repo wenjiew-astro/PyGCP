@@ -49,6 +49,35 @@ From the project directory, install the local source instead:
 python -m pip install .
 ```
 
+## Test the installation
+
+Run the built-in fitting test from a terminal (Command Prompt or PowerShell on
+Windows):
+
+```bash
+python -m pygcp.test_pygcp
+```
+
+The example data are included in the installed package. This command works from
+any directory and does not require downloading the source repository or a
+separate `tests/` folder. It runs a top-hat fit and prints a report followed by
+`PyGCP installation test passed.` The fit can take some time; by default it does
+not save files, create plots, scan lags, or compute HESSE errors. This is an
+installation smoke test, not a scientific accuracy or uncertainty validation.
+
+Run shell commands at the terminal prompt, **not** at Python's `>>>` prompt.
+If you are already inside Python, enter `exit()` first. On Windows, use a
+writable user directory rather than `C:\Windows\SysWOW64` or another system
+directory when saving output.
+
+To save fitted results and plots explicitly:
+
+```bash
+python -m pygcp.test_pygcp --save --plot --output-prefix results/example
+```
+
+For the full set of example options, run `python -m pygcp.test_pygcp --help`.
+
 ## Input format
 
 `continuum` and `line` may be paths or NumPy arrays. Each table must contain
@@ -97,6 +126,7 @@ result = run_mle(
     save=False,
     make_figures=False,
     show_figures=False,
+    output_prefix="results/example",
 )
 
 print(result["p_hat"]["lag"])
@@ -109,14 +139,63 @@ be expensive; disabling plotting alone does not disable the scan. These
 explicit options only control this example, not the package's API defaults.
 In particular, `run_mle` still defaults to `run_scan=True`.
 
-For a runnable example with bundled data, use:
+For a runnable example with bundled data, use the installed test module:
 
 ```bash
-python tests/example.py
+python -m pygcp.test_pygcp
 ```
 
 See [tests/README.md](https://github.com/wenjiew-astro/PyGCP/blob/main/tests/README.md)
 for plotting and lag-scan examples.
+
+### Saving results and choosing the output directory
+
+`output_prefix` combines an output directory and a filename prefix; it is not
+just a directory name. With `save=True` and
+`output_prefix="results/example"`, a fit without a lag scan writes:
+
+```text
+results/example_mle_params.txt
+results/example_mle_summary.txt
+results/example_parameter_uncertainties.json
+```
+
+The JSON file records uncertainty diagnostics even when HESSE is disabled.
+`run_scan=True` additionally writes `results/example_mle_scan.txt`.
+`save=True` does not enable plotting; `make_figures=True` independently saves
+figures under the same prefix, even with `save=False`.
+
+Missing output directories are created automatically. Relative paths are
+resolved against the **current working directory** (check with `Path.cwd()`),
+not the package's installation directory or the input-data directory. Without
+an explicit `output_prefix`, `run_mle` uses `"gcp_rm"`, so `save=True` writes
+`gcp_rm_mle_params.txt`, `gcp_rm_mle_summary.txt`, and
+`gcp_rm_parameter_uncertainties.json` directly in the current directory.
+Use a different prefix for each run to avoid overwriting existing output files.
+
+For an absolute output path in your user directory on Windows, Linux, or macOS:
+
+```python
+from pathlib import Path
+from pygcp import run_mle
+
+result = run_mle(
+    "continuum.txt",
+    "line.txt",
+    save=True,
+    output_prefix=str(Path.home() / "PyGCP-results" / "run1"),
+    run_scan=False,
+    compute_hesse_errors=False,
+    make_figures=False,
+    show_figures=False,
+)
+```
+
+Replace the two input paths with your own light-curve files. This example saves
+results in the `PyGCP-results` folder under your user directory, with filenames
+starting with `run1`.
+
+### Model settings and diagnostics
 
 When `fit_transfer_width=True` (the default), no width needs to be supplied.
 The optimizer uses the logarithmic midpoint of `transfer_width_bounds` only as
@@ -194,6 +273,7 @@ result = run_mle(
     save=False,
     make_figures=False,
     show_figures=False,
+    output_prefix="results/flexible",
 )
 ```
 
@@ -276,6 +356,7 @@ selection = run_transfer_model_selection(
     lag_min=-10.0,
     lag_max=10.0,
     lag_step=0.1,
+    output_prefix="results/model_selection",
 )
 
 print(selection["best_transfer"])
@@ -324,10 +405,11 @@ and are independent of the Python import name.
 
 ## Development
 
-The local `tests/` directory contains one runnable example, its two small
-input tables, and focused three-Gaussian numerical regression tests. These
-are included in the source distribution, but not the wheel. Download a source
-checkout or unpack the source distribution, then run from its project root:
+The installed package includes the fitting test `pygcp.test_pygcp` and its two
+input tables. The source-only `tests/` directory contains a wrapper for this
+example and the numerical regression suite; this directory itself is not
+installed by a wheel. To run the regression suite, download a source checkout
+or unpack the source distribution, then run from its project root:
 
 ```bash
 python -m pip install .
