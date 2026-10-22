@@ -12,7 +12,7 @@ from .core import (
     run_transfer_model_selection,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "SUPPORTED_TRANSFERS",
