@@ -1,0 +1,146 @@
+name: Publish to PyPI
+
+# Only an explicitly published GitHub release or manual run can publish.
+# Ordinary pushes and TestPyPI runs never trigger a production upload.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact package version to publish (for example, 0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-pypi
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and test release distributions
+    if: >-
+      github.repository == 'wenjiew-astro/PyGCP' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'release' && !github.event.release.prerelease &&
+        startsWith(github.event.release.tag_name, 'v')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - name: Check out the release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify the source commit belongs to main
+        run: git merge-base --is-ancestor HEAD origin/main
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Verify the package version and release tag
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import ast
+          import os
+          from pathlib import Path
+          import tomllib
+          from packaging.version import Version
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]
+          if project["name"] != "pygcp-rm":
+              raise SystemExit("Unexpected distribution name")
+          version = project["version"]
+          parsed = Version(version)
+          if parsed.is_prerelease or parsed.is_devrelease or parsed.local is not None:
+              raise SystemExit("This workflow publishes stable releases only")
+          module = ast.parse(Path("src/pygcp/__init__.py").read_text(encoding="utf-8"))
+          import_versions = [
+              ast.literal_eval(node.value)
+              for node in module.body
+              if isinstance(node, ast.Assign)
+              and any(isinstance(target, ast.Name) and target.id == "__version__"
+                      for target in node.targets)
+          ]
+          if import_versions != [version]:
+              raise SystemExit("pyproject.toml and pygcp.__version__ must match")
+          event = os.environ["GITHUB_EVENT_NAME"]
+          if event == "release":
+              if os.environ.get("RELEASE_TAG") != f"v{version}":
+                  raise SystemExit(f"Release tag must be v{version}")
+          elif event == "workflow_dispatch":
+              if os.environ.get("REQUESTED_VERSION") != version:
+                  raise SystemExit(f"Requested version must be {version}")
+          else:
+              raise SystemExit("Unsupported publishing event")
+          print(f"Verified release version: {version}")
+          PY
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check --strict dist/*
+
+      - name: Install and test the built wheel
+        run: |
+          python -m pip install dist/*.whl
+          python -m pip check
+          python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Run installed smoke test outside the source directory
+        working-directory: ${{ runner.temp }}
+        run: python -m pygcp.test_pygcp
+
+      - name: Save tested distributions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pygcp-rm-pypi-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish tested distributions to PyPI
+    needs: build
+    if: github.repository == 'wenjiew-astro/PyGCP'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pygcp-rm/
+    permissions:
+      id-token: write
+    steps:
+      # This OIDC-enabled job does not execute project source or build scripts.
+      - name: Download tested distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pygcp-rm-pypi-distributions
+          path: dist
+
+      - name: Upload using PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+          packages-dir: dist/
