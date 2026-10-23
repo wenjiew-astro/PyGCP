@@ -4209,7 +4209,17 @@ def format_report(result):
         if value is None:
             continue
         if error is None:
-            lines.append(f"parameter {name}={value:.6g} (not computed or fixed)")
+            if item.get("fitted") is False:
+                note = "fixed"
+            else:
+                note = (
+                    "uncertainty not computed"
+                    if uncertainties.get("status") == "disabled"
+                    else "uncertainty unavailable"
+                )
+                if item.get("fitted") is True:
+                    note = f"fitted; {note}"
+            lines.append(f"parameter {name}={value:.6g} ({note})")
         else:
             lines.append(f"parameter {name}={value:.6g} +/- {error:.6g}")
     if summary.get("lag_mle") is not None:

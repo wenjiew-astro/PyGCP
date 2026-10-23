@@ -18,6 +18,83 @@ from pygcp import test_pygcp
 
 
 class PackageTests(unittest.TestCase):
+    @staticmethod
+    def _report_fixture(status="disabled", fit_transfer_width=True):
+        result = {
+            "p_hat": {"lag": 3.16668, "tau_drw": 27.4498, "rho": 0.999994,
+                      "jitter": 1e-8, "transfer": "tophat",
+                      "transfer_width": 0.640005},
+            "summary": {},
+            "config": {"scan_mode": "profile-local",
+                       "fit_transfer_width": fit_transfer_width},
+            "joint_loglike": 529.047,
+            "joint_objective": 529.047,
+            "optimizer_diagnostics": {"converged": True},
+            "fit_score_kind": "data_loglike",
+        }
+        result["parameter_uncertainties"] = core._empty_parameter_uncertainties(
+            result["p_hat"], result["config"], status,
+        )
+        return result
+
+    def test_report_distinguishes_fitted_parameters_from_fixed_jitter(self):
+        result = self._report_fixture()
+        original = copy.deepcopy(result)
+        report = pygcp.format_report(result)
+        for name, value in (("lag", "3.16668"), ("tau_drw", "27.4498"),
+                            ("rho", "0.999994"), ("transfer_width", "0.640005")):
+            self.assertIn(f"parameter {name}={value} "
+                          "(fitted; uncertainty not computed)", report)
+        self.assertIn("parameter jitter=1e-08 (fixed)", report)
+        self.assertIn("optimizer converged=True", report)
+        self.assertIn("HESSE status=disabled", report)
+        self.assertNotIn("not computed or fixed", report)
+        self.assertEqual(result, original)
+
+    def test_report_labels_fixed_width_even_when_hesse_is_disabled_or_failed(self):
+        for status in ("disabled", "hesse_failed"):
+            with self.subTest(status=status):
+                result = self._report_fixture(status, fit_transfer_width=False)
+                report = pygcp.format_report(result)
+                self.assertIn("parameter transfer_width=0.640005 (fixed)", report)
+                self.assertIn("parameter jitter=1e-08 (fixed)", report)
+
+    def test_report_distinguishes_unavailable_uncertainty_from_disabled_hesse(self):
+        for status in ("unavailable_backend", "covariance_unavailable",
+                       "covariance_invalid", "hesse_failed", "warning", "unavailable"):
+            with self.subTest(status=status):
+                result = self._report_fixture(status)
+                result["parameter_uncertainties"]["message"] = "Diagnostic detail"
+                original = copy.deepcopy(result)
+                report = pygcp.format_report(result)
+                self.assertIn("parameter lag=3.16668 (fitted; uncertainty unavailable)",
+                              report)
+                self.assertIn(f"HESSE status={status}", report)
+                self.assertIn("HESSE note=Diagnostic detail", report)
+                self.assertNotIn("uncertainty not computed", report)
+                self.assertEqual(result, original)
+
+    def test_report_does_not_infer_fit_status_when_metadata_is_missing(self):
+        for status, note in (("disabled", "uncertainty not computed"),
+                             ("unavailable", "uncertainty unavailable")):
+            with self.subTest(status=status):
+                result = self._report_fixture(status)
+                del result["parameter_uncertainties"]["physical_parameters"]["lag"]["fitted"]
+                report = pygcp.format_report(result)
+                self.assertIn(f"parameter lag=3.16668 ({note})", report)
+
+    def test_report_keeps_computed_uncertainty_format_without_mutation(self):
+        result = self._report_fixture("ok")
+        for item in result["parameter_uncertainties"]["physical_parameters"].values():
+            if item["fitted"]:
+                item["error"] = 0.125
+        original = copy.deepcopy(result)
+        report = pygcp.format_report(result)
+        self.assertIn("parameter lag=3.16668 +/- 0.125", report)
+        self.assertIn("parameter jitter=1e-08 (fixed)", report)
+        self.assertNotIn("uncertainty unavailable", report)
+        self.assertEqual(result, original)
+
     def test_bundled_example_data_match_source_tables(self):
         continuum, line = test_pygcp._load_example_data()
         source_dir = Path(__file__).resolve().parent
